@@ -1,4 +1,4 @@
-(ns web-app.users
+(ns web-app.user
   (:require [clojure.java.jdbc :as jdbc]))
 
 (def db
@@ -19,14 +19,14 @@
   "Create db and users table."
   []
   (jdbc/db-do-commands
-        db
-        (when-not (db-table-exists? "users")
-          (jdbc/create-table-ddl
-           :users
-           [[:id :integer :primary :key]
-            [:timestamp :datetime :default :current_timestamp]
-            [:firstname :text :not_null]
-            [:lastname :text :not_null]]))))
+   db
+   (when-not (db-table-exists? "users")
+     (jdbc/create-table-ddl
+      :users
+      [[:id :integer :primary :key]
+       [:created :datetime :default :current_timestamp]
+       [:first_name :text]
+       [:last_name :text]]))))
 
 (defn get-all
   "Get all users."
@@ -41,9 +41,18 @@
 (defn insert!
   "Insert user"
   [user]
-  (jdbc/insert! db :users user))
+  (->
+   (jdbc/insert! db :users
+                 {:first_name (user :firstName)
+                  :last_name (user :lastName)})
+   first
+   vals
+   first
+   (get-by-id)))
 
 (defn delete!
   "Delete user on id"
   [id]
-  (jdbc/delete! db :users ["id = ?" id]))
+  (if (= (first (jdbc/delete! db :users ["id = ?" id])) 1)
+    true
+    false))
